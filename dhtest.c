@@ -59,6 +59,7 @@ struct dhcpv4_hdr *dhcph_g = { 0 };
 
 u_int8_t *dhopt_pointer_g = { 0 };
 u_int8_t verbose = 0;
+u_int8_t writelog = 0;
 u_int8_t dhcp_release_flag = 0;
 u_int16_t timeout = 0;
 time_t time_now, time_last;
@@ -93,6 +94,7 @@ void print_help(char *cmd)
     fprintf(stdout, "  -k, --bind-timeout\t[ timeout ]\t# Listen timout in seconds. Default 3600 seconds\n");
     fprintf(stdout, "  -f, --bcast_flag\t\t\t# Sets broadcast flag on DHCP discover and request\n");
     fprintf(stdout, "  -V, --verbose\t\t\t\t# Prints DHCP offer and ack details\n");
+	fprintf(stdout, "  -W, --write-log\t\t\t# Write reply to logfile\n");
     fprintf(stdout, "  dhtest version 1.1\n");
 }
 
@@ -122,13 +124,14 @@ int main(int argc, char *argv[])
 	{ "bind-timeout", required_argument, 0, 'k' },
 	{ "bcast_flag", no_argument, 0, 'f'},
 	{ "verbose", no_argument, 0, 'V'},
+	{ "write-log", no_argument, 0, 'W'},
 	{ "release", no_argument, 0, 'r'},
 	{ 0, 0, 0, 0 }
     };
 
     /*getopt routine to get command line arguments*/
     while(get_tmp < argc) {
-	get_cmd  = getopt_long(argc, argv, "m:i:v:t:bfVrT:I:o:k:L:n:",\
+	get_cmd  = getopt_long(argc, argv, "m:i:v:t:bfVWrT:I:o:k:L:n:",\
 		long_options, &option_index);
 	if(get_cmd == -1 ) {
 	    break;
@@ -224,6 +227,10 @@ int main(int argc, char *argv[])
 		
 	    case 'V':
 		verbose = 1;
+		break;
+
+		case 'W':
+		writelog = 1;
 		break;
 		
 	    default:
@@ -349,7 +356,9 @@ int main(int argc, char *argv[])
 	    fprintf(stdout, "Acquired IP: %s\n", inet_ntoa(dhcph_g->dhcp_yip));
 
 	    /* Logs DHCP IP details to log file. This file is used for DHCP release */
-	    log_dhinfo(); 
+		if(writelog) {
+	    	log_dhinfo(); 
+		}
 	    if(verbose) {
     		print_dhinfo(DHCP_MSGACK);
 	    }
