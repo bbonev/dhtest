@@ -54,6 +54,7 @@ extern u_char dmac[ETHER_ADDR_LEN];
 
 extern char dhmac_fname[20];
 extern char iface_name[30];
+extern char option12_name[30];
 extern u_int32_t server_id, option50_ip;
 extern u_int8_t dhcp_release_flag;
 
@@ -442,6 +443,18 @@ int build_option53(int msg_type)
 	dhopt_size = dhopt_size + 3; 
     }
     return 0;
+}
+
+int build_option12()
+{
+    u_int8_t msgtype = DHCP_HOSTNAME;
+    u_int8_t msglen = strlen(option12_name);
+    u_int8_t *msg = option12_name; 
+
+	memcpy((dhopt_buff + dhopt_size), &msgtype, 1);
+	memcpy((dhopt_buff + dhopt_size + 1), &msglen, 1);
+	memcpy((dhopt_buff + dhopt_size + 2), msg, msglen);
+	dhopt_size += 1 + 1 + msglen;
 }
 
 /*

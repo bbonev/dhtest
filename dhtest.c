@@ -40,6 +40,7 @@ u_char dmac[ETHER_ADDR_LEN];
 
 char dhmac_fname[20];
 char iface_name[30] = { 0 };
+char option12_name[30] = { 0 };
 u_int8_t dhmac_flag = 0;
 u_int32_t server_id = { 0 }, option50_ip = { 0 };
 u_int32_t dhcp_xid = 0;  
@@ -79,6 +80,7 @@ void print_help(char *cmd)
 {
     fprintf(stdout, "Usage: %s [ options ] -m mac_address\n", cmd);
     fprintf(stdout, "  -r, --release\t\t\t\t# Releases obtained DHCP IP for corresponding MAC\n");
+	fprintf(stdout, "  -n, --option12-name\t[ name ] # Option 12. Client ID (hostname)\n");
     fprintf(stdout, "  -L, --option51-lease_time [ Lease_time ] # Option 51. Requested lease time in secondes\n");
     fprintf(stdout, "  -I, --option50-ip\t[ IP_address ]\t# Option 50 IP address on DHCP discover\n");
     fprintf(stdout, "  -o, --option60-vci\t[ VCI_string ]\t# Vendor Class Idendifier string\n");
@@ -111,6 +113,7 @@ int main(int argc, char *argv[])
 	{ "vlan", required_argument, 0, 'v' },
 	{ "dhcp_xid", required_argument, 0, 'x' },
 	{ "tos", required_argument, 0, 't' },
+	{ "option12-name", required_argument, 0, 'n' },
 	{ "option51-lease_time", required_argument, 0, 'L' },
 	{ "option50-ip", required_argument, 0, 'I' },
 	{ "option60-vci", required_argument, 0, 'o' },
@@ -125,7 +128,7 @@ int main(int argc, char *argv[])
 
     /*getopt routine to get command line arguments*/
     while(get_tmp < argc) {
-	get_cmd  = getopt_long(argc, argv, "m:i:v:t:bfVrT:I:o:k:L:",\
+	get_cmd  = getopt_long(argc, argv, "m:i:v:t:bfVrT:I:o:k:L:n:",\
 		long_options, &option_index);
 	if(get_cmd == -1 ) {
 	    break;
@@ -194,6 +197,10 @@ int main(int argc, char *argv[])
 		option50_ip = inet_addr(optarg);
 		break;
 		
+	    case 'n':
+		strncpy(option12_name, optarg, sizeof(option12_name));
+		break;
+
 	    case 'o':
 		if(strlen(optarg) > 256) {
 		    fprintf(stdout, "VCI string size should be less than 256\n");
@@ -313,6 +320,9 @@ int main(int argc, char *argv[])
     if(vci_flag == 1) {
 	build_option60_vci();  
     }
+	if(strlen(option12_name) > 0) {
+		build_option12();	/* Option 12 - Client ID (hostname) */
+	}
     if(option51_lease_time) {
         build_option51();                       /* Option51 - DHCP lease time requested */
     }
