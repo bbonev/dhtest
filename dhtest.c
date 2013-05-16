@@ -81,7 +81,7 @@ void print_help(char *cmd)
 {
     fprintf(stdout, "Usage: %s [ options ] -m mac_address\n", cmd);
     fprintf(stdout, "  -r, --release\t\t\t\t# Releases obtained DHCP IP for corresponding MAC\n");
-	fprintf(stdout, "  -n, --option12-name\t[ name ] # Option 12. Client ID (hostname)\n");
+	fprintf(stdout, "  -n, --option12-name\t[ name ]\t# Option 12. Client ID (hostname)\n");
     fprintf(stdout, "  -L, --option51-lease_time [ Lease_time ] # Option 51. Requested lease time in secondes\n");
     fprintf(stdout, "  -I, --option50-ip\t[ IP_address ]\t# Option 50 IP address on DHCP discover\n");
     fprintf(stdout, "  -o, --option60-vci\t[ VCI_string ]\t# Vendor Class Idendifier string\n");
