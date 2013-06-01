@@ -3,7 +3,7 @@
 CC=gcc
 # CFLAGS=-Wall
 
-dhtest: dhtest.o functions.o 
+dhtest: dhtest.o functions.o
 	$(CC) dhtest.o functions.o -o dhtest
 
 clean:
