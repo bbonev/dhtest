@@ -13,7 +13,7 @@
 
 int open_socket();		/* Opens PF_PACKET socket*/
 int close_socket();		/* Close PF_PACKET socket */
-int set_promisc();
+void set_promisc();
 int clear_promisc();
 int send_packet(int pkt_type);	/* Sends DHCP packet socket*/
 int recv_packet(int pkt_type);	/* Receives DHCP packet on socket*/
@@ -22,13 +22,14 @@ int reset_dhopt_size();		/* Resets the dhopt_size to zero */
 int set_rand_dhcp_xid();	/* Sets a random DHCP xid */
 int build_option53(int msg_type);	/* Option53: MSGTYPE. Builds option53*/
 int build_option55();		/* Requested parameters list */
-int build_option54();		/* Builds server identifier on DHCP request */
+void build_option54();		/* Builds server identifier on DHCP request */
 int build_option50();		/* Option50: Rqstd IP. Builds option50*/
 int build_option51();		/* Option51: Rqstd lease time. Builds option51*/
 int build_option60_vci();	/* Vendor class identifier */
+void build_option12();		/* Option12: Client ID (hostname) */
 int build_optioneof();		/* End of option */
 
-int build_dhpacket(int pkt_type);	/* Build DHCP disc, req packets  */
+void build_dhpacket(int pkt_type);	/* Build DHCP disc, req packets  */
 int build_packet(int pkt_type); /* Builds ARP and ICMP reply packets */
 int print_buff(u_int8_t *buff, int size);/* Debug routine */
 int map_all_layer_ptr(int pkt_type);	/* maps all layer pointer on DHCP packet */

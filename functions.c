@@ -11,6 +11,8 @@
 #include <linux/if_packet.h>
 #include <linux/if_ether.h>
 #include <linux/if_arp.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "headers.h"
 
 //Defined in dhtest.c
@@ -36,7 +38,7 @@ extern u_int32_t dhopt_size;
 extern u_int32_t dhcp_xid;
 extern u_int32_t bcast_flag;
 extern u_int8_t timeout;
-extern u_int8_t vci_buff[256];
+extern char vci_buff[256];
 extern u_int32_t option51_lease_time;
 
 extern struct ethernet_hdr *eth_hg;
@@ -59,7 +61,7 @@ extern u_int32_t server_id, option50_ip;
 extern u_int8_t dhcp_release_flag;
 
 extern u_int32_t ip_address;
-extern ip_listen_flag;
+extern u_char ip_listen_flag;
 extern u_char arp_icmp_packet[1514];
 extern u_char arp_icmp_reply[1514];
 extern u_int16_t icmp_len;
@@ -73,7 +75,6 @@ extern u_int32_t listen_timeout;
 
 int open_socket()
 {
-	int sock_new, non_block, tmp;
 	sock_packet = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if(sock_packet < 0) {
 	perror("--Error on creating the socket--");
@@ -103,7 +104,7 @@ int close_socket()
 /*
  * Sets the promiscous mode on the interface
  */
-int set_promisc()
+void set_promisc()
 {
 	int status;
 	struct ifreq ifr;
@@ -207,7 +208,8 @@ int send_packet(int pkt_type)
 int recv_packet(int pkt_type)
 
 {
-	int ret, sock_len, retval, chk_pkt_state, tmp = 0;
+	int ret, retval, chk_pkt_state;
+	socklen_t sock_len;
 	fd_set read_fd;
 	struct timeval tval;
 	tval.tv_sec = 5;
@@ -298,6 +300,7 @@ int recv_packet(int pkt_type)
 	}
 	return LISTEN_TIMOUET;
 	}
+	return LISTEN_TIMOUET;
 }
 
 /* Debug function - Prints the buffer on HEX format */
@@ -340,7 +343,8 @@ int set_rand_dhcp_xid()
  */
 u_int16_t ipchksum(u_int16_t *buff, int words)
 {
-	unsigned int sum, i;
+	unsigned int sum;
+	int i;
 	sum = 0;
 	for(i = 0;i < words; i++){
 	sum = sum + *(buff + i);
@@ -354,7 +358,8 @@ u_int16_t ipchksum(u_int16_t *buff, int words)
  */
 u_int16_t icmpchksum(u_int16_t *buff, int words)
 {
-	unsigned int sum, i;
+	unsigned int sum;
+	int i;
 	unsigned int last_word = 0;
 	/* Checksum enhancement for odd packets */
 	if((icmp_len % 2) == 1) {
@@ -382,7 +387,8 @@ u_int16_t icmpchksum(u_int16_t *buff, int words)
  */
 u_int16_t l4_sum(u_int16_t *buff, int words, u_int16_t *srcaddr, u_int16_t *dstaddr, u_int16_t proto, u_int16_t len)
 {
-	unsigned int sum, i, last_word = 0;
+	unsigned int sum, last_word = 0;
+	int i;
 
 	/* Checksum enhancement - Support for odd byte packets */
 	if((htons(len) % 2) == 1) {
@@ -420,8 +426,8 @@ int build_option53(int msg_type)
 	u_int8_t msg = DHCP_MSGDISCOVER;
 
 	memcpy(dhopt_buff, &msgtype, 1);
-	strncpy((dhopt_buff + 1), &msglen, 1);
-	strncpy((dhopt_buff + 2), &msg, 1);
+	memcpy((dhopt_buff + 1), &msglen, 1);
+	memcpy((dhopt_buff + 2), &msg, 1);
 	dhopt_size = dhopt_size + 3;
 	} else if(msg_type == DHCP_MSGREQUEST) {
 	u_int8_t msgtype = DHCP_MESSAGETYPE;
@@ -429,8 +435,8 @@ int build_option53(int msg_type)
 	u_int8_t msg = DHCP_MSGREQUEST;
 
 	memcpy(dhopt_buff, &msgtype, 1);
-	strncpy((dhopt_buff + 1), &msglen, 1);
-	strncpy((dhopt_buff + 2), &msg, 1);
+	memcpy((dhopt_buff + 1), &msglen, 1);
+	memcpy((dhopt_buff + 2), &msg, 1);
 	dhopt_size = dhopt_size + 3;
 	} else if(msg_type == DHCP_MSGRELEASE) {
 	u_int8_t msgtype = DHCP_MESSAGETYPE;
@@ -438,18 +444,18 @@ int build_option53(int msg_type)
 	u_int8_t msg = DHCP_MSGRELEASE;
 
 	memcpy(dhopt_buff, &msgtype, 1);
-	strncpy((dhopt_buff + 1), &msglen, 1);
-	strncpy((dhopt_buff + 2), &msg, 1);
+	memcpy((dhopt_buff + 1), &msglen, 1);
+	memcpy((dhopt_buff + 2), &msg, 1);
 	dhopt_size = dhopt_size + 3;
 	}
 	return 0;
 }
 
-int build_option12()
+void build_option12()
 {
 	u_int8_t msgtype = DHCP_HOSTNAME;
 	u_int8_t msglen = strlen(option12_name);
-	u_int8_t *msg = option12_name;
+	char *msg = option12_name;
 
 	memcpy((dhopt_buff + dhopt_size), &msgtype, 1);
 	memcpy((dhopt_buff + dhopt_size + 1), &msglen, 1);
@@ -491,7 +497,7 @@ int build_option51()
 /*
  * Builds DHCP option54 on dhopt_buff
  */
-int build_option54()
+void build_option54()
 {
 	u_int8_t msgtype = DHCP_SERVIDENT;
 	u_int8_t msglen = 4;
@@ -554,7 +560,7 @@ int build_optioneof()
 /*
  * Build DHCP packet. Packet type is passed as argument
  */
-int build_dhpacket(int pkt_type)
+void build_dhpacket(int pkt_type)
 {
 	if(!dhcp_release_flag) {
 		u_char dmac_tmp[ETHER_ADDR_LEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
@@ -908,6 +914,7 @@ int check_packet(int pkt_type)
 	}
 	return UNKNOWN_PACKET;
 	}
+	return UNKNOWN_PACKET;
 }
 
 /*
@@ -940,20 +947,20 @@ int print_dhinfo(int pkt_type)
 
 	fprintf(stdout, "\nDHCP offer details\n");
 	fprintf(stdout, "----------------------------------------------------------\n");
-	fprintf(stdout, "DHCP offered IP from server - %s\n", inet_ntoa(dhcph_g->dhcp_yip));
-	fprintf(stdout, "Next server IP(Probably TFTP server) - %s\n", inet_ntoa(dhcph_g->dhcp_sip));
+	fprintf(stdout, "DHCP offered IP from server - %s\n", inet_ntoa(*(struct in_addr *)&dhcph_g->dhcp_yip));
+	fprintf(stdout, "Next server IP(Probably TFTP server) - %s\n", inet_ntoa(*(struct in_addr *)&dhcph_g->dhcp_sip));
 	if(dhcph_g->dhcp_gip) {
-	fprintf(stdout, "DHCP Relay agent IP - %s\n", inet_ntoa(dhcph_g->dhcp_gip));
+	fprintf(stdout, "DHCP Relay agent IP - %s\n", inet_ntoa(*(struct in_addr *)&dhcph_g->dhcp_gip));
 	}
 	} else if( pkt_type == DHCP_MSGACK) {
 	map_all_layer_ptr(DHCP_MSGACK);
 
 	fprintf(stdout, "\nDHCP ack details\n");
 	fprintf(stdout, "----------------------------------------------------------\n");
-	fprintf(stdout, "DHCP offered IP from server - %s\n", inet_ntoa(dhcph_g->dhcp_yip));
-	fprintf(stdout, "Next server IP(Probably TFTP server) - %s\n", inet_ntoa(dhcph_g->dhcp_sip));
+	fprintf(stdout, "DHCP offered IP from server - %s\n", inet_ntoa(*(struct in_addr *)&dhcph_g->dhcp_yip));
+	fprintf(stdout, "Next server IP(Probably TFTP server) - %s\n", inet_ntoa(*(struct in_addr *)&dhcph_g->dhcp_sip));
 	if(dhcph_g->dhcp_gip) {
-	fprintf(stdout, "DHCP Relay agent IP - %s\n", inet_ntoa(dhcph_g->dhcp_gip));
+	fprintf(stdout, "DHCP Relay agent IP - %s\n", inet_ntoa(*(struct in_addr *)&dhcph_g->dhcp_gip));
 	}
 	}
 
@@ -961,7 +968,7 @@ int print_dhinfo(int pkt_type)
 
 	switch(*(dhopt_pointer_g)) {
 		case DHCP_SERVIDENT:
-		fprintf(stdout, "DHCP server  - %s\n", inet_ntoa(*(u_int32_t *)(dhopt_pointer_g + 2)));
+		fprintf(stdout, "DHCP server  - %s\n", inet_ntoa(*(struct in_addr *)(dhopt_pointer_g + 2)));
 		break;
 
 		case DHCP_LEASETIME:
@@ -972,18 +979,18 @@ int print_dhinfo(int pkt_type)
 		break;
 
 		case DHCP_SUBNETMASK:
-		fprintf(stdout, "Subnet mask - %s\n", inet_ntoa(*(u_int32_t *)(dhopt_pointer_g + 2)));
+		fprintf(stdout, "Subnet mask - %s\n", inet_ntoa(*(struct in_addr *)(dhopt_pointer_g + 2)));
 		break;
 
 		case DHCP_ROUTER:
 		for(tmp = 0; tmp < (*(dhopt_pointer_g + 1) / 4); tmp++) {
-		fprintf(stdout, "Router/gateway - %s\n", inet_ntoa(*(u_int32_t *)(dhopt_pointer_g + 2 + (tmp * 4))));
+		fprintf(stdout, "Router/gateway - %s\n", inet_ntoa(*(struct in_addr *)(dhopt_pointer_g + 2 + (tmp * 4))));
 		}
 		break;
 
 		case DHCP_DNS:
 		for(tmp = 0; tmp < ((*(dhopt_pointer_g + 1)) / 4); tmp++) {
-		fprintf(stdout, "DNS server - %s\n", inet_ntoa(*(u_int32_t *)(dhopt_pointer_g + 2 + (tmp * 4))));
+		fprintf(stdout, "DNS server - %s\n", inet_ntoa(*(struct in_addr *)(dhopt_pointer_g + 2 + (tmp * 4))));
 		}
 		break;
 	}
@@ -1058,8 +1065,8 @@ int log_dhinfo()
 	}
 	if(!vlan) {
 	fprintf(dh_file, "Client_mac: %s\n", dhmac_fname);
-	fprintf(dh_file, "Acquired_ip: %s\n", inet_ntoa(dhcph_g->dhcp_yip));
-	fprintf(dh_file, "Server_id: %s\n", inet_ntoa(server_id));
+	fprintf(dh_file, "Acquired_ip: %s\n", inet_ntoa(*(struct in_addr *)&dhcph_g->dhcp_yip));
+	fprintf(dh_file, "Server_id: %s\n", inet_ntoa(*(struct in_addr *)&server_id));
 	fprintf(dh_file, "Host_mac: %02X:%02X:%02X:%02X:%02X:%02X\n", eth_hg->ether_shost[0],\
 		eth_hg->ether_shost[1], eth_hg->ether_shost[2], eth_hg->ether_shost[3],\
 		eth_hg->ether_shost[4], eth_hg->ether_shost[5]);
@@ -1071,8 +1078,8 @@ int log_dhinfo()
 	}
 	} else {
 	fprintf(dh_file, "Client_mac: %s\n", dhmac_fname);
-	fprintf(dh_file, "Acquired_ip: %s\n", inet_ntoa(dhcph_g->dhcp_yip));
-	fprintf(dh_file, "Server_id: %s\n", inet_ntoa(server_id));
+	fprintf(dh_file, "Acquired_ip: %s\n", inet_ntoa(*(struct in_addr *)&dhcph_g->dhcp_yip));
+	fprintf(dh_file, "Server_id: %s\n", inet_ntoa(*(struct in_addr *)&server_id));
 	fprintf(dh_file, "Host_mac: %02X:%02X:%02X:%02X:%02X:%02X\n", vlan_hg->vlan_shost[0],\
 		vlan_hg->vlan_shost[1], vlan_hg->vlan_shost[2], vlan_hg->vlan_shost[3],\
 		vlan_hg->vlan_shost[4], vlan_hg->vlan_shost[5]);
@@ -1094,19 +1101,19 @@ int log_dhinfo()
 int get_dhinfo()
 {
 	FILE *dh_file;
-	char mac_tmp[20], acq_ip_tmp[20], serv_id_tmp[20], dmac_tmp[20], ip_listen_tmp[10];
+	char mac_tmp[20], acq_ip_tmp[20], serv_id_tmp[20], ip_listen_tmp[10];
 	pid_t dh_pid;
 	dh_file = fopen(dhmac_fname, "r");
 	if(dh_file == NULL) {
 	return ERR_FILE_OPEN;
 	}
 	fscanf(dh_file, "Client_mac: %s\nAcquired_ip: %s\nServer_id: %s\n\
-	Host_mac: %2X:%2X:%2X:%2X:%2X:%2X\nIP_listen: %s Pid: %d\n", mac_tmp, acq_ip_tmp, serv_id_tmp, \
+	Host_mac: %2hhX:%2hhX:%2hhX:%2hhX:%2hhX:%2hhX\nIP_listen: %s Pid: %d\n", mac_tmp, acq_ip_tmp, serv_id_tmp, \
 	&dmac[0], &dmac[1], &dmac[2], &dmac[3], &dmac[4], &dmac[5], ip_listen_tmp, &dh_pid);
 	option50_ip = inet_addr(acq_ip_tmp);
 	server_id = inet_addr(serv_id_tmp);
 	if((strncmp(ip_listen_tmp, "True", 4)) == 0) {
-	kill(dh_pid, SIGKILL)
+	kill(dh_pid, SIGKILL);
 	}
 	fclose(dh_file);
 	unlink(dhmac_fname);

@@ -13,10 +13,13 @@
 #include <linux/if_packet.h>
 #include <getopt.h>
 #include <time.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "headers.h"
 
 int sock_packet, iface = 2;	/* Socket descripter & transmit interface index */
-struct sockaddr_ll ll = { 0 };	/* Socket address structure */
+struct sockaddr_ll ll;	/* Socket address structure */
 u_int16_t vlan = 0;
 u_int8_t l3_tos = 0;
 u_int16_t l2_hdr_size = 14;
@@ -45,7 +48,7 @@ u_int8_t dhmac_flag = 0;
 u_int32_t server_id = { 0 }, option50_ip = { 0 };
 u_int32_t dhcp_xid = 0;
 u_int16_t bcast_flag = 0; /* DHCP broadcast flag */
-u_int8_t vci_buff[256] = { 0 }; /* VCI buffer*/
+char vci_buff[256] = { 0 }; /* VCI buffer*/
 u_int16_t vci_flag = 0;
 u_int32_t option51_lease_time = 0;
 
@@ -143,7 +146,7 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 		strcpy(dhmac_fname, optarg);
-		sscanf((char *)optarg, "%2X:%2X:%2X:%2X:%2X:%2X", &dhmac[0], \
+		sscanf((char *)optarg, "%2hhX:%2hhX:%2hhX:%2hhX:%2hhX:%2hhX", &dhmac[0], \
 		&dhmac[1], &dhmac[2], &dhmac[3], &dhmac[4], &dhmac[5]);
 		dhmac_flag = 1;
 		break;
@@ -313,7 +316,7 @@ int main(int argc, char *argv[])
 	if(dhcp_offer_state == DHCP_OFFR_RCVD) {
 		fprintf(stdout, "DHCP offer received\t - ");
 		set_serv_id_opt50();
-		fprintf(stdout, "Offered IP : %s\n", inet_ntoa(dhcph_g->dhcp_yip));
+		fprintf(stdout, "Offered IP : %s\n", inet_ntoa(*(struct in_addr *)&dhcph_g->dhcp_yip));
 		if(verbose) {
 			print_dhinfo(DHCP_MSGOFFER);
 		}
@@ -353,7 +356,7 @@ int main(int argc, char *argv[])
 
 	if(dhcp_ack_state == DHCP_ACK_RCVD) {
 		fprintf(stdout, "DHCP ack received\t - ");
-		fprintf(stdout, "Acquired IP: %s\n", inet_ntoa(dhcph_g->dhcp_yip));
+		fprintf(stdout, "Acquired IP: %s\n", inet_ntoa(*(struct in_addr *)&dhcph_g->dhcp_yip));
 
 		/* Logs DHCP IP details to log file. This file is used for DHCP release */
 		if(writelog) {
@@ -370,8 +373,11 @@ int main(int argc, char *argv[])
 	}
 	/* If IP listen flag is enabled, Listen on obtained for ARP, ICMP protocols  */
 	if(ip_listen_flag) {
+	struct in_addr taddr;
+
+	taddr.s_addr=htonl(ip_address);
 	fprintf(stdout, "\nListening on %s for ARP and ICMP protocols\n", iface_name);
-	fprintf(stdout, "IP address: %s, Listen timeout: %d seconds\n", inet_ntoa(htonl(ip_address)), listen_timeout);
+	fprintf(stdout, "IP address: %s, Listen timeout: %d seconds\n", inet_ntoa(taddr), listen_timeout);
 	int arp_icmp_rcv_state = 0;
 	while(arp_icmp_rcv_state != LISTEN_TIMOUET) {
 		arp_icmp_rcv_state = recv_packet(ARP_ICMP_RCV);
