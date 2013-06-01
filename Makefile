@@ -1,5 +1,7 @@
 # Makefile to generate dhtest
 
+all: dhtest
+
 CC=gcc
 # CFLAGS=-Wall
 
